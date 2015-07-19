@@ -1,3 +1,5 @@
+open List
+
 table status : {Id : int, Nam : string}
   PRIMARY KEY Id
   CONSTRAINT Nam UNIQUE Nam
@@ -5,76 +7,41 @@ table status : {Id : int, Nam : string}
 table t : {
   Id : int, 
   Nam : string, 
-  Ready : bool, 
-  ForeignStatus : int }
+  Status : int }
   PRIMARY KEY Id
-  CONSTRAINT ForeignStatus 
-    FOREIGN KEY ForeignStatus 
+  CONSTRAINT Status 
+    FOREIGN KEY Status 
     REFERENCES status(Id)
 
 open Crud.Make(struct
   val tab = t
   
-  val title = "Are you Ready? Select a Foreign Status."
+  val title = "Select a Status."
 
   val cols = {
     Nam = Crud.string "Name",
 
-    Ready = {
-      Nam = "Ready?",
-
-      Show = (fn b => 
-       if b then
-         <xml>Ready!</xml>
-       else
-         <xml>Not ready</xml>),
-
-      Widget = (fn [nm :: Name] => 
-        <xml>
-          <select{nm}>
-            <option>Ready</option>
-            <option>Not ready</option>
-          </select>
-        </xml>),
-
-      WidgetPopulated = (fn [nm :: Name] b => 
-      <xml>
-        <select{nm}>
-          <option selected={b}>Ready</option>
-          <option selected={not b}>Not ready</option>
-        </select>
-      </xml>),
-
-      Parse = (fn s =>
-        case s of
-            "Ready" => True
-          | "Not ready" => False
-          | _ => error <xml>Invalid ready/not ready</xml>),
-
-      Inject = _
-    },
-
-    ForeignStatus = {
-      Nam = "Foreign Status",
+    Status = {
+      Nam = "tatus",
   
-      Show = (fn fstat =>
+      Show = (fn statusId =>
         let
-          val statusNamTxn = queryL1 (SELECT * FROM status WHERE Id = {[fstat]})
-          val statusNam = nth (List.MapX (fn r => r.Nam) statusNamTxn) 1
+          val statusList = queryL1 (SELECT * FROM status WHERE Id = {[statusId]})
+          val statusNam = List.nth (List.mapX (fn r => r.Nam) statusList) 1
         in
           case statusNam of
               Some sn => <xml>{sn}</xml>
-            | _ => error <xml>Error: Show: Foreign Status<xml>
+            | _ => error <xml>Error: Show: bad status.Id</xml>
         end),
 
       Widget = (fn [nm :: Name] => 
         let
-          val statusOptionsTxn = 
+          val statusOptionsList = 
             queryL1 (SELECT Id, Nam FROM status ORDER BY Nam) 
           val statusOptions = 
-            List.MapX 
+            List.mapX 
               (fn r => <xml><option>{r.Nam}</option></xml>)
-              statusOptionsTxn
+              statusOptionsList
         in
           <xml>
             <select{nm}>
@@ -83,14 +50,14 @@ open Crud.Make(struct
           </xml>
         end),
 
-      WidgetPopulated = (fn [nm :: Name] fstatId => 
+      WidgetPopulated = (fn [nm :: Name] statusId => 
         let
-          val statusOptionsPopTxn = 
+          val statusOptionsList = 
             queryL1 (SELECT status.Id, status.Nam FROM status ORDER BY status.Nam) 
           val statusOptionsPop = 
-            List.MapX
-              (fn r => <xml><option selected={r.Id=fstatId}>{r.Nam}</option></xml>)
-              statusOptionsPopTxn
+            List.mapX
+              (fn r => <xml><option selected={r.Id=statusId}>{r.Nam}</option></xml>)
+              statusOptionsList
         in
           <xml>
             <select{nm}>
@@ -99,15 +66,14 @@ open Crud.Make(struct
           </xml>
          end),
 
-      Parse = (fn fstatNam =>
+      Parse = (fn statusNam =>
         let
-          val fstatIdTxn = queryL1 (SELECT Id FROM status WHERE Nam = {[fstatNam]})
-          val fstatId = 
-            nth (List.MapX (fn r => f.fstatId) fStatIdTxn) 1
+          val statusList = queryL1 (SELECT * FROM status WHERE Nam = {[statusNam]})
+          val statusId = nth (List.mapX (fn r => r.Id) statusList) 1
         in
-          case fstatId of
-              Some fsid => fsid
-            | _ error <xml>Error: Parse: Foreign Status<xml>
+          case statusId of
+              Some si => si
+            | _ => error <xml>Error: Parse: bad status.Nam</xml>
         end),
 
       Inject = _
