@@ -80,7 +80,8 @@ open Crud.Make(struct
             <select{nm}>
               {statusOptions}
             </select>
-          </xml>),
+          </xml>
+        end),
 
       WidgetPopulated = (fn [nm :: Name] fstatId => 
         let
